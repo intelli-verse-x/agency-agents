@@ -365,6 +365,8 @@ def fence_blocks(lines):
             continue
         tok, rest = m.group(2), line[m.end():]
         if not marker:
+            if tok[0] == "`" and "`" in rest:
+                continue
             marker, mlen, start = tok[0], len(tok), i
         elif tok[0] == marker and len(tok) >= mlen and not rest.strip():
             # only a bare run closes: "```bash" inside a block is content (lib.sh fence_closes_p)

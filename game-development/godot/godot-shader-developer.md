@@ -75,8 +75,11 @@ void fragment() {
     alpha = max(alpha, texture(TEXTURE, UV + vec2(-texel.x, -texel.y)).a);
 
     // Draw outline where neighbor has alpha but current pixel does not
-    vec4 outline = vec4(outline_color.rgb, outline_color.a * alpha * (1.0 - base_color.a));
-    COLOR = mix(outline, base_color, base_color.a);
+    float outline_alpha = outline_color.a * alpha * (1.0 - base_color.a);
+    float combined_alpha = base_color.a + outline_alpha;
+    vec3 premultiplied_rgb = base_color.rgb * base_color.a + outline_color.rgb * outline_alpha;
+    // CanvasItem expects straight alpha: apply each coverage exactly once.
+    COLOR = vec4(combined_alpha > 0.0 ? premultiplied_rgb / combined_alpha : vec3(0.0), combined_alpha);
 }
 ```
 

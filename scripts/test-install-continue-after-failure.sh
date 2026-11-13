@@ -8,6 +8,9 @@
 # qwen was never attempted and never mentioned.
 set -euo pipefail
 
+# Fixture destinations must never inherit a developer's real installation paths.
+unset GEMINI_AGENTS_DIR QWEN_AGENTS_DIR CURSOR_RULES_DIR
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/agency-continue.XXXXXX")"
 trap 'rm -rf "$tmp"' EXIT

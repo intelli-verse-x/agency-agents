@@ -2,6 +2,9 @@
 # Hermes installation must replace only a directory owned by this plugin.
 set -euo pipefail
 
+# Fixture destinations must never inherit a developer's real installation paths.
+unset HERMES_HOME HERMES_PLUGIN_DIR
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/agency-hermes-dest.XXXXXX")"
 trap 'rm -rf "$tmp"' EXIT

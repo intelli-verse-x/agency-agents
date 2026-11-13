@@ -43,6 +43,7 @@ description: Fixture agent with an indented opening code fence
 color: blue
 ---
 ## Identity
+```inline code```
   ```text
   code sample
 ```

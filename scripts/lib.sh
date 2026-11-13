@@ -26,6 +26,20 @@ get_field() {
     # continue onto indented lines; YAML folds those into one line joined by
     # single spaces, and so do we — otherwise the generated description is
     # silently truncated to its first line (three healthcare agents were).
+    # A comment-looking continuation is literal only inside an unclosed quoted scalar.
+    function quoted_open(v, q, i, c) {
+      q = substr(v, 1, 1)
+      if (q != "\047" && q != "\"") return 0
+      for (i = 2; i <= length(v); i++) {
+        c = substr(v, i, 1)
+        if (q == "\"" && c == "\\") { i++; continue }
+        if (c == q) {
+          if (q == "\047" && substr(v, i + 1, 1) == q) { i++; continue }
+          return 0
+        }
+      }
+      return 1
+    }
     function emit(v) {
       sub(/^[ \t]+/, "", v); sub(/[ \t]+$/, "", v)   # YAML: plain-scalar padding is not content
       if (v ~ /^".*"$/)            { v = substr(v, 2, length(v) - 2); gsub(/\\"/, "\"", v); gsub(/\\\\/, "\\", v) }
@@ -34,7 +48,7 @@ get_field() {
     }
     /^---$/ { fm++; if (fm == 2 && found) emit(val); next }
     fm == 1 && !found && $0 ~ "^" f ": " { sub("^" f ": ", ""); val = $0; found = 1; next }
-    fm == 1 && found && /^[ \t]+[^ \t]/ { sub(/^[ \t]+/, ""); val = val " " $0; next }
+    fm == 1 && found && /^[ \t]+[^ \t]/ { sub(/^[ \t]+/, ""); if ($0 ~ /^#/ && !quoted_open(val)) next; val = val " " $0; next }
     fm == 1 && found { emit(val) }
     END { if (found && !printed) emit(val) }
   ' "$file"
@@ -73,7 +87,10 @@ is_agent_file() {
 fence_open_p() {
   local line="$1"
   local re='^( {0,3})(`{3,}|~{3,})'
-  [[ "$line" =~ $re ]]
+  [[ "$line" =~ $re ]] || return 1
+  local marker="${BASH_REMATCH[2]}" rest="${line:${#BASH_REMATCH[0]}}"
+  # CommonMark: a backtick fence info string cannot itself contain a backtick.
+  [[ "${marker:0:1}" != '`' || "$rest" != *'`'* ]]
 }
 
 # fence_closes_p <line> <open_marker> <open_len> [<open_indent>] — 0 if <line>
