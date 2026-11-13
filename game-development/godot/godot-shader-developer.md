@@ -75,8 +75,11 @@ void fragment() {
     alpha = max(alpha, texture(TEXTURE, UV + vec2(-texel.x, -texel.y)).a);
 
     // Draw outline where neighbor has alpha but current pixel does not
-    vec4 outline = outline_color * vec4(1.0, 1.0, 1.0, alpha * (1.0 - base_color.a));
-    COLOR = base_color + outline;
+    float outline_alpha = outline_color.a * alpha * (1.0 - base_color.a);
+    float combined_alpha = base_color.a + outline_alpha;
+    vec3 premultiplied_rgb = base_color.rgb * base_color.a + outline_color.rgb * outline_alpha;
+    // CanvasItem expects straight alpha: apply each coverage exactly once.
+    COLOR = vec4(combined_alpha > 0.0 ? premultiplied_rgb / combined_alpha : vec3(0.0), combined_alpha);
 }
 ```
 
@@ -128,7 +131,8 @@ void fragment() {
 
     vec3 normal_a = texture(normal_map_a, UV * wave_scale + time_offset_a).rgb;
     vec3 normal_b = texture(normal_map_b, UV * wave_scale + time_offset_b).rgb;
-    NORMAL_MAP = normalize(normal_a + normal_b);
+    // Blend the encoded [0,1] texels; Godot decodes xy * 2 - 1 and rebuilds z
+    NORMAL_MAP = mix(normal_a, normal_b, 0.5);
 
     // Depth-based color blend (Forward+ / Mobile renderer required for DEPTH_TEXTURE)
     // In Compatibility renderer: remove depth blend, use flat shallow_color
